@@ -15,6 +15,36 @@ import (
 	"github.com/hectorgimenez/koolo/internal/utils"
 )
 
+func TownBuff() {
+	ctx := context.Get()
+	if !ctx.CharacterCfg.Game.BuffInTown {
+		return
+	}
+
+	ctx.SetLastAction("TownBuff")
+
+	postKeys := make([]data.KeyBinding, 0)
+	for _, buff := range ctx.Char.BuffSkills() {
+		kb, found := ctx.Data.KeyBindings.KeyBindingForSkill(buff)
+		if !found {
+		} else {
+			postKeys = append(postKeys, kb)
+		}
+	}
+
+	if len(postKeys) > 0 {
+		for _, kb := range postKeys {
+			utils.Sleep(200)
+			ctx.HID.PressKeyBinding(kb)
+			utils.Sleep(200)
+			ctx.HID.Click(game.RightButton, 300, 300)
+			utils.Sleep(100)
+
+		}
+		ctx.LastBuffAt = time.Now()
+	}
+}
+
 func BuffIfRequired() {
 	ctx := context.Get()
 
@@ -79,28 +109,52 @@ func Buff() {
 
 	buffCTA()
 
-	postKeys := make([]data.KeyBinding, 0)
-	for _, buff := range ctx.Char.BuffSkills() {
-		kb, found := ctx.Data.KeyBindings.KeyBindingForSkill(buff)
-		if !found {
-			ctx.Logger.Info("Key binding not found, skipping buff", slog.String("skill", buff.Desc().Name))
-		} else {
-			postKeys = append(postKeys, kb)
+	// Now buff post CTA skills
+
+	lastRun := time.Time{}
+	ctx.SetLastStep("Post CTA Buffin")
+
+	for {
+		// Pause the execution if the priority is not the same as the execution priority
+		ctx.PauseIfNotPriority()
+
+		if time.Since(lastRun) < time.Millisecond*500 {
+			continue
+		}
+
+		// insert the actual tasks here
+
+		postKeys := make([]data.KeyBinding, 0)
+		for _, buff := range ctx.Char.BuffSkills() {
+			kb, found := ctx.Data.KeyBindings.KeyBindingForSkill(buff)
+			if !found {
+				ctx.Logger.Info("Key binding not found, skipping buff", slog.String("skill", buff.Desc().Name))
+			} else {
+				postKeys = append(postKeys, kb)
+			}
+		}
+
+		if len(postKeys) > 0 {
+			ctx.Logger.Debug("Post CTA Buffing...")
+
+			for _, kb := range postKeys {
+				utils.Sleep(100)
+				ctx.HID.PressKeyBinding(kb)
+				utils.Sleep(200)
+				ctx.HID.Click(game.RightButton, 300, 300)
+				utils.Sleep(100)
+			}
+			ctx.LastBuffAt = time.Now()
+		}
+
+		lastRun = time.Now()
+
+		_, found := ctx.Data.PlayerUnit.Skills[ctx.Char.BuffSkills()[0]]
+		if found {
+			return
 		}
 	}
 
-	if len(postKeys) > 0 {
-		ctx.Logger.Debug("Post CTA Buffing...")
-
-		for _, kb := range postKeys {
-			utils.Sleep(100)
-			ctx.HID.PressKeyBinding(kb)
-			utils.Sleep(180)
-			ctx.HID.Click(game.RightButton, 640, 340)
-			utils.Sleep(100)
-		}
-		ctx.LastBuffAt = time.Now()
-	}
 }
 
 func IsRebuffRequired() bool {

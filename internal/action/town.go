@@ -71,6 +71,7 @@ func PreRun(firstRun bool) error {
 	HealAtNPC()
 	ReviveMerc()
 	HireMerc()
+	TownBuff()
 
 	return Repair()
 }
