@@ -68,7 +68,7 @@ func (a Leveling) act5() error {
 		currentDifficulty := a.ctx.CharacterCfg.Game.Difficulty
 		switch currentDifficulty {
 		case difficulty.Normal:
-			if lvl.Value >= 41 {
+			if lvl.Value >= 44 {
 				a.ctx.CharacterCfg.Game.Difficulty = difficulty.Nightmare
 				difficultyChanged = true
 			}
@@ -82,7 +82,7 @@ func (a Leveling) act5() error {
 			effectiveLightRes := rawLightRes.Value - 40
 
 			// Check conditions using effective resistance values
-			if lvl.Value >= 70 && effectiveFireRes >= 75 && effectiveLightRes >= 50 {
+			if lvl.Value >= 75 && effectiveFireRes >= 75 && effectiveLightRes >= 50 {
 				a.ctx.CharacterCfg.Game.Difficulty = difficulty.Hell
 
 				difficultyChanged = true
@@ -100,7 +100,7 @@ func (a Leveling) act5() error {
 		}
 	}
 
-	if a.ctx.CharacterCfg.Game.Difficulty == difficulty.Nightmare && lvl.Value < 60 || a.ctx.CharacterCfg.Game.Difficulty == difficulty.Normal && lvl.Value < 30 {
+	if a.ctx.CharacterCfg.Game.Difficulty == difficulty.Nightmare && lvl.Value < 70 || a.ctx.CharacterCfg.Game.Difficulty == difficulty.Normal && lvl.Value < 36 {
 
 		diabloRun := NewDiablo()
 		err := diabloRun.Run()
@@ -249,7 +249,6 @@ func (a Leveling) act5() error {
 			}
 		}
 
-
 		NewLowerKurastChest().Run()
 		NewMephisto(nil).Run()
 		NewMausoleum().Run()
@@ -294,5 +293,3 @@ func (a Leveling) CrystallinePassage() error {
 	return nil
 
 }
-
-

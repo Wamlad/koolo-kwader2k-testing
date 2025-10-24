@@ -80,7 +80,7 @@ func (a Leveling) act1() error {
 		}
 	}
 
-	if a.ctx.CharacterCfg.Game.Difficulty == difficulty.Hell && lvl.Value <= 75 {
+	if a.ctx.CharacterCfg.Game.Difficulty == difficulty.Hell && lvl.Value <= 80 {
 
 		return NewMausoleum().Run()
 	}
@@ -134,7 +134,7 @@ func (a Leveling) act1() error {
 	}
 
 	// Tristram only until lvl 6, then Trist + Countess
-	if a.ctx.CharacterCfg.Game.Difficulty == difficulty.Normal && lvl.Value < 12 {
+	if a.ctx.CharacterCfg.Game.Difficulty == difficulty.Normal && lvl.Value < 14 {
 
 		if a.ctx.CharacterCfg.Character.Class == "sorceress_leveling" {
 			a.ctx.CharacterCfg.Character.ClearPathDist = 4
@@ -209,14 +209,14 @@ func (a Leveling) setupLevelOneConfig() {
 	a.ctx.CharacterCfg.Character.StashToShared = false
 	a.ctx.CharacterCfg.Game.UseCainIdentify = true
 	a.ctx.CharacterCfg.CloseMiniPanel = false
-	a.ctx.CharacterCfg.Health.HealingPotionAt = 40
-	a.ctx.CharacterCfg.Health.ManaPotionAt = 25
-	a.ctx.CharacterCfg.Health.RejuvPotionAtLife = 0
-	a.ctx.CharacterCfg.Health.ChickenAt = 7
+	a.ctx.CharacterCfg.Health.HealingPotionAt = 85
+	a.ctx.CharacterCfg.Health.ManaPotionAt = 30
+	a.ctx.CharacterCfg.Health.RejuvPotionAtLife = 68
+	a.ctx.CharacterCfg.Health.ChickenAt = 60
 	a.ctx.CharacterCfg.Gambling.Enabled = true
 	a.ctx.CharacterCfg.Health.MercRejuvPotionAt = 40
 	a.ctx.CharacterCfg.Health.MercChickenAt = 0
-	a.ctx.CharacterCfg.Health.MercHealingPotionAt = 25
+	a.ctx.CharacterCfg.Health.MercHealingPotionAt = 75
 	a.ctx.CharacterCfg.MaxGameLength = 1200
 	a.ctx.CharacterCfg.CubeRecipes.Enabled = true
 	a.ctx.CharacterCfg.CubeRecipes.EnabledRecipes = []string{"Perfect Amethyst", "Reroll GrandCharms", "Caster Amulet"}
@@ -246,7 +246,7 @@ func (a Leveling) setupLevelOneConfig() {
 	a.ctx.CharacterCfg.Game.MinGoldPickupThreshold = 2000
 	a.ctx.CharacterCfg.Inventory.HealingPotionCount = 4
 	a.ctx.CharacterCfg.Inventory.ManaPotionCount = 8
-	a.ctx.CharacterCfg.Inventory.RejuvPotionCount = 0
+	a.ctx.CharacterCfg.Inventory.RejuvPotionCount = 2
 	a.ctx.CharacterCfg.Character.ShouldHireAct2MercFrozenAura = true
 	if err := config.SaveSupervisorConfig(a.ctx.CharacterCfg.ConfigFolderName, a.ctx.CharacterCfg); err != nil {
 		a.ctx.Logger.Error(fmt.Sprintf("Failed to save character configuration: %s", err.Error()))
@@ -271,26 +271,36 @@ func (a Leveling) AdjustDifficultyConfig() {
 	if lvl.Value >= 24 {
 		if a.ctx.CharacterCfg.Game.Difficulty == difficulty.Normal {
 			a.ctx.CharacterCfg.Inventory.BeltColumns = [4]string{"healing", "healing", "mana", "mana"}
-			a.ctx.CharacterCfg.Health.MercHealingPotionAt = 55
+			a.ctx.CharacterCfg.Health.MercHealingPotionAt = 80
 			a.ctx.CharacterCfg.Health.MercRejuvPotionAt = 0
 			a.ctx.CharacterCfg.Health.HealingPotionAt = 85
-			a.ctx.CharacterCfg.Health.ChickenAt = 30
+			a.ctx.CharacterCfg.Health.ChickenAt = 60
 			a.ctx.CharacterCfg.Character.ClearPathDist = 15
 
 		} else if a.ctx.CharacterCfg.Game.Difficulty == difficulty.Nightmare {
-			a.ctx.CharacterCfg.Inventory.BeltColumns = [4]string{"healing", "healing", "mana", "mana"}
-			a.ctx.CharacterCfg.Health.MercHealingPotionAt = 55
-			a.ctx.CharacterCfg.Health.MercRejuvPotionAt = 0
-			a.ctx.CharacterCfg.Health.HealingPotionAt = 85
-			a.ctx.CharacterCfg.Health.ChickenAt = 30
+			a.ctx.CharacterCfg.Inventory.BeltColumns = [4]string{"healing", "healing", "mana", "rejuvenation"}
+			a.ctx.CharacterCfg.Inventory.HealingPotionCount = 4
+			a.ctx.CharacterCfg.Inventory.ManaPotionCount = 2
+			a.ctx.CharacterCfg.Inventory.RejuvPotionCount = 6
+			a.ctx.CharacterCfg.Health.MercHealingPotionAt = 80
+			a.ctx.CharacterCfg.Health.MercRejuvPotionAt = 25
+			a.ctx.CharacterCfg.Health.HealingPotionAt = 92
+			a.ctx.CharacterCfg.Health.RejuvPotionAtLife = 68
+
+			a.ctx.CharacterCfg.Health.ChickenAt = 65
 			a.ctx.CharacterCfg.Character.ClearPathDist = 15
 
 		} else if a.ctx.CharacterCfg.Game.Difficulty == difficulty.Hell {
 			a.ctx.CharacterCfg.Inventory.BeltColumns = [4]string{"healing", "healing", "mana", "rejuvenation"}
+			a.ctx.CharacterCfg.Inventory.HealingPotionCount = 4
+			a.ctx.CharacterCfg.Inventory.ManaPotionCount = 0
+			a.ctx.CharacterCfg.Inventory.RejuvPotionCount = 6
 			a.ctx.CharacterCfg.Health.MercHealingPotionAt = 80
-			a.ctx.CharacterCfg.Health.MercRejuvPotionAt = 40
-			a.ctx.CharacterCfg.Health.HealingPotionAt = 90
-			a.ctx.CharacterCfg.Health.ChickenAt = 40
+			a.ctx.CharacterCfg.Health.MercRejuvPotionAt = 25
+			a.ctx.CharacterCfg.Health.HealingPotionAt = 95
+			a.ctx.CharacterCfg.Health.RejuvPotionAtLife = 70
+
+			a.ctx.CharacterCfg.Health.ChickenAt = 65
 			if a.ctx.CharacterCfg.Character.Class == "sorceress_leveling" {
 				// don't engage when teleing and running oom
 				a.ctx.CharacterCfg.Character.ClearPathDist = 0
