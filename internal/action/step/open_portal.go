@@ -1,22 +1,37 @@
 package step
 
 import (
-	"errors" 
+	"errors"
 	"time"
 
+	"github.com/hectorgimenez/d2go/pkg/data/item"
 	"github.com/hectorgimenez/d2go/pkg/data/object"
 	"github.com/hectorgimenez/d2go/pkg/data/skill"
 	"github.com/hectorgimenez/koolo/internal/context"
 	"github.com/hectorgimenez/koolo/internal/game"
+	"github.com/hectorgimenez/koolo/internal/ui"
 	"github.com/hectorgimenez/koolo/internal/utils"
 )
-
 
 var ErrPlayerDied = errors.New("player is dead")
 
 func OpenPortal() error {
 	ctx := context.Get()
 	ctx.SetLastStep("OpenPortal")
+	tpItem, tpItemFound := ctx.Data.Inventory.Find(item.TomeOfTownPortal, item.LocationInventory)
+
+	// Portal cooldown: Prevent rapid portal creation during lag
+	// Check last portal time to avoid spam during network delays
+	if !ctx.LastPortalTick.IsZero() {
+		timeSinceLastPortal := time.Since(ctx.LastPortalTick)
+		minPortalCooldown := time.Duration(utils.PingMultiplier(utils.Critical, 1000)) * time.Millisecond
+		if timeSinceLastPortal < minPortalCooldown {
+			remainingCooldown := minPortalCooldown - timeSinceLastPortal
+			ctx.Logger.Debug("Portal cooldown active, waiting",
+				"cooldownRemaining", remainingCooldown)
+			time.Sleep(remainingCooldown)
+		}
+	}
 
 	lastRun := time.Time{}
 	for {
@@ -30,17 +45,36 @@ func OpenPortal() error {
 
 		_, found := ctx.Data.Objects.FindOne(object.TownPortal)
 		if found {
-			return nil // Portal found, success!
+			ctx.LastPortalTick = time.Now() // Update portal timestamp on success
+			return nil                      // Portal found, success!
 		}
 
 		// Give some time to portal to popup before retrying...
-		if time.Since(lastRun) < time.Millisecond*500 {
-		continue
+		if time.Since(lastRun) < time.Millisecond*1000 {
+			continue
 		}
 
-		ctx.HID.PressKeyBinding(ctx.Data.KeyBindings.MustKBForSkill(skill.TomeOfTownPortal))
-		utils.Sleep(250)
-		ctx.HID.Click(game.RightButton, 300, 300)
+		usedKB := false
+		//Already have tome of portal
+		if tpItemFound {
+			if _, bindingFound := ctx.Data.KeyBindings.KeyBindingForSkill(skill.TomeOfTownPortal); bindingFound {
+				ctx.HID.PressKeyBinding(ctx.Data.KeyBindings.MustKBForSkill(skill.TomeOfTownPortal))
+				utils.PingSleep(utils.Medium, 250) // Medium operation: Wait for tome activation
+				ctx.HID.Click(game.RightButton, 300, 300)
+				usedKB = true
+			}
+		} else {
+			tpItem, tpItemFound = ctx.Data.Inventory.Find(item.ScrollOfTownPortal, item.LocationInventory)
+		}
+
+		//Try to tp through inventory using tome or scroll
+		if !usedKB && tpItemFound {
+			ctx.HID.PressKeyBinding(ctx.Data.KeyBindings.Inventory)
+			screenPos := ui.GetScreenCoordsForItem(tpItem)
+			ctx.HID.Click(game.RightButton, screenPos.X, screenPos.Y)
+			CloseAllMenus()
+		}
+
 		lastRun = time.Now()
 	}
 }

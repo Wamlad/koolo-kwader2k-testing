@@ -51,8 +51,8 @@ type SorceressLeveling struct {
 
 // fireSkillSequence defines the skill allocation for levels < 32
 var fireSkillSequence = []skill.ID{
-	skill.FrozenArmor, // Lvl 2 (1st point)
-	skill.FireBolt,    // Lvl 2 (+1 from Den of Evil, 2nd point)
+	skill.FireBolt,    // Lvl 2 (1st point)
+	skill.FrozenArmor, // Lvl 2 (+1 from Den of Evil, 2nd point)
 	skill.FireBolt,    // Lvl 3 (3rd point)
 	skill.FireBolt,    // Lvl 4 (4th point)
 	skill.FireBolt,    // Lvl 5 (1st point)
@@ -141,6 +141,9 @@ var blizzardSkillSequence = []skill.ID{
 }
 
 // --- End Skill Point Sequences ---
+func (s SorceressLeveling) ShouldIgnoreMonster(m data.Monster) bool {
+	return false
+}
 
 func (s SorceressLeveling) isPlayerDead() bool {
 	return s.Data.PlayerUnit.HPPercent() <= 0
@@ -246,7 +249,7 @@ func (s SorceressLeveling) KillMonsterSequence(
 				s.andarielMoves++
 				s.Logger.Debug(fmt.Sprintf("Andariel is too close, moving away to fixed coordinate. Move %d of %d.", s.andarielMoves, len(s.andarielSafePositions)))
 
-				step.MoveTo(targetPos)
+				step.MoveTo(targetPos, step.WithIgnoreMonsters())
 				time.Sleep(time.Millisecond * 200)
 				continue // Re-evaluate in the next loop
 			}
@@ -329,7 +332,7 @@ func (s SorceressLeveling) KillMonsterSequence(
 								s.Logger.Info("Player detected as dead, stopping KillMonsterSequence.")
 								return nil
 							}
-							step.MoveTo(safePos)
+							step.MoveTo(safePos, step.WithIgnoreMonsters())
 							time.Sleep(time.Millisecond * 200)
 							continue
 						} else {
@@ -390,7 +393,7 @@ func (s SorceressLeveling) KillMonsterSequence(
 								slog.Int("distance", distanceToMonster),
 								slog.Int("requiredRange", StaticFieldEffectiveRange),
 							)
-							step.MoveTo(monster.Position)
+							step.MoveTo(monster.Position, step.WithIgnoreMonsters())
 							time.Sleep(time.Millisecond * 100)
 							continue
 						}
@@ -460,7 +463,7 @@ func (s SorceressLeveling) KillMonsterSequence(
 						slog.String("target", fmt.Sprintf("%v", monster.Name)),
 						slog.Int("distance", distanceToMonster),
 					)
-					step.MoveTo(monster.Position)
+					step.MoveTo(monster.Position, step.WithIgnoreMonsters())
 					time.Sleep(time.Millisecond * 100)
 					continue
 				}
@@ -544,7 +547,9 @@ func (s SorceressLeveling) KillMonsterSequence(
 					currentAttackSkillUsed = skill.FireBall
 				}
 			} else if _, found := s.Data.KeyBindings.KeyBindingForSkill(skill.FireBolt); found {
-				currentAttackSkillUsed = skill.FireBolt
+				if action.GetSkillTotalLevel(skill.FireBolt) > 0 {
+					currentAttackSkillUsed = skill.FireBolt
+				}
 			}
 
 			if currentAttackSkillUsed != skill.AttackSkill {
@@ -800,7 +805,7 @@ func (s SorceressLeveling) KillMephisto() error {
 		var attackOption step.AttackOption = step.Distance(SorceressLevelingMinDistance, SorceressLevelingMaxDistance)
 
 		staticFieldRange := step.Distance(0, StaticFieldEffectiveRange)
-		err := step.MoveTo(data.Position{X: 17565, Y: 8065})
+		err := step.MoveTo(data.Position{X: 17565, Y: 8065}, step.WithIgnoreMonsters())
 
 		monster, found := s.Data.Monsters.FindOne(npc.Mephisto, data.MonsterTypeUnique)
 		if !found {
@@ -850,7 +855,7 @@ func (s SorceressLeveling) KillMephisto() error {
 				if distanceToMonster > StaticFieldEffectiveRange && s.Data.PlayerUnit.Skills[skill.Teleport].Level > 0 {
 					s.Logger.Debug("Mephisto too far for Static Field, repositioning closer.")
 
-					step.MoveTo(monster.Position)
+					step.MoveTo(monster.Position, step.WithIgnoreMonsters())
 					utils.Sleep(150)
 					continue
 				}
@@ -868,7 +873,7 @@ func (s SorceressLeveling) KillMephisto() error {
 			s.Logger.Info("Static Field not available or bound, skipping Static Phase.")
 		}
 
-		err = step.MoveTo(data.Position{X: 17563, Y: 8072})
+		err = step.MoveTo(data.Position{X: 17563, Y: 8072}, step.WithIgnoreMonsters())
 		if err != nil {
 			return err
 		}
@@ -897,7 +902,7 @@ func (s SorceressLeveling) KillMephisto() error {
 
 		// Move to initial position
 		utils.Sleep(350)
-		err := step.MoveTo(data.Position{X: 17563, Y: 8072})
+		err := step.MoveTo(data.Position{X: 17563, Y: 8072}, step.WithIgnoreMonsters())
 		if err != nil {
 			return err
 		}
@@ -911,7 +916,7 @@ func (s SorceressLeveling) KillMephisto() error {
 		}
 
 		for _, pos := range initialPositions {
-			err := step.MoveTo(data.Position{X: pos.x, Y: pos.y})
+			err := step.MoveTo(data.Position{X: pos.x, Y: pos.y}, step.WithIgnoreMonsters())
 			if err != nil {
 				return err
 			}
@@ -924,7 +929,7 @@ func (s SorceressLeveling) KillMephisto() error {
 			return err
 		}
 
-		err = step.MoveTo(data.Position{X: 17609, Y: 8090})
+		err = step.MoveTo(data.Position{X: 17609, Y: 8090}, step.WithIgnoreMonsters())
 		if err != nil {
 			return err
 		}
@@ -1018,7 +1023,7 @@ func (s SorceressLeveling) KillAncients() error {
 		if !found {
 			continue
 		}
-		step.MoveTo(data.Position{X: 10062, Y: 12639})
+		step.MoveTo(data.Position{X: 10062, Y: 12639}, step.WithIgnoreMonsters())
 
 		s.killMonsterByName(foundMonster.Name, data.MonsterTypeSuperUnique, nil)
 
@@ -1037,4 +1042,21 @@ func (s SorceressLeveling) KillBaal() error {
 func (s SorceressLeveling) GetAdditionalRunewords() []string {
 	additionalRunewords := action.GetCastersCommonRunewords()
 	return additionalRunewords
+}
+
+func (s SorceressLeveling) InitialCharacterConfigSetup() {
+	ctx := context.Get()
+	ctx.CharacterCfg.Inventory.ManaPotionCount = 8
+}
+
+func (s SorceressLeveling) AdjustCharacterConfig() {
+	ctx := context.Get()
+	ctx.CharacterCfg.Character.UseTeleport = true
+
+	if ctx.CharacterCfg.Game.Difficulty == difficulty.Hell {
+		// don't engage when teleing and running oom
+		ctx.CharacterCfg.Character.ClearPathDist = 0
+	}
+
+	ctx.CharacterCfg.Inventory.ManaPotionCount = 8
 }

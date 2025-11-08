@@ -42,16 +42,16 @@ window.onload = function () {
     updateEnabledRunsHiddenField();
 
     const buildSelectElement = document.querySelector('select[name="characterClass"]');
-    buildSelectElement.addEventListener('change', function() {
+    buildSelectElement.addEventListener('change', function () {
         const selectedBuild = buildSelectElement.value;
-        const levelingBuilds = ['paladin', 'sorceress_leveling', 'druid_leveling', 'necromancer', 'assassin'];
+        const levelingBuilds = ['paladin', 'sorceress_leveling', 'druid_leveling', 'amazon_leveling', 'necromancer', 'assassin'];
 
         const enabledRunListElement = document.getElementById('enabled_runs');
         if (!enabledRunListElement) return;
 
         const enabledRuns = Array.from(enabledRunListElement.querySelectorAll('li')).map(li => li.getAttribute('value'));
         const isLevelingRunEnabled = enabledRuns.includes('leveling');
-        const hasOtherRunsEnabled = enabledRuns.length > 1;                  
+        const hasOtherRunsEnabled = enabledRuns.length > 1;
 
         if (levelingBuilds.includes(selectedBuild) && (!isLevelingRunEnabled || hasOtherRunsEnabled)) {
             alert("This profile requires enabling the leveling run. Please add only the 'leveling' run to the enabled run list and remove the others.");
@@ -85,6 +85,7 @@ function checkLevelingProfile() {
         "sorceress_leveling",
         "paladin",
         "druid_leveling",
+        "amazon_leveling",
         "necromancer",
         "assassin"
     ];
@@ -140,9 +141,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const mosaicAssassinOptions = document.querySelector('.mosaic-assassin-options');
     const blizzardSorceressOptions = document.querySelector('.blizzard-sorceress-options');
     const sorceressLevelingOptions = document.querySelector('.sorceress_leveling-options');
-	const runewordSearchInput = document.getElementById('search-runewords');
+    const runewordSearchInput = document.getElementById('search-runewords');
     const useTeleportCheckbox = document.getElementById('characterUseTeleport');
+    const useExtraBuffsCheckbox = document.getElementById('characterUseExtraBuffs');
     const clearPathDistContainer = document.getElementById('clearPathDistContainer');
+    const useExtraBuffsDistContainer = document.getElementById('useExtraBuffsDistContainer');
     const clearPathDistInput = document.getElementById('clearPathDist');
     const clearPathDistValue = document.getElementById('clearPathDistValue');
 
@@ -169,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
         blizzardSorceressOptions.style.display = 'none';
         sorceressLevelingOptions.style.display = 'none';
         noSettingsMessage.style.display = 'none';
-        
+
         // Show relevant options based on class
         if (selectedClass === 'berserker') {
             berserkerBarbOptions.style.display = 'block';
@@ -181,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (selectedClass === 'sorceress') {
             blizzardSorceressOptions.style.display = 'block';
         } else if (selectedClass === 'sorceress_leveling') {
-            sorceressLevelingOptions.style.display = 'block';                        
+            sorceressLevelingOptions.style.display = 'block';
         } else {
             noSettingsMessage.style.display = 'block';
         }
@@ -195,11 +198,43 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     }
+    function toggleUseExtraBuffsVisibility() {
+        if (useExtraBuffsCheckbox && useExtraBuffsDistContainer) {
+            if (useExtraBuffsCheckbox.checked) {
+                useExtraBuffsDistContainer.style.display = 'block';
+            } else {
+                useExtraBuffsDistContainer.style.display = 'none';
+            }
+        }
+    }
 
     // Update the displayed value when the slider changes
     function updateClearPathValue() {
         if (clearPathDistInput && clearPathDistValue) {
             clearPathDistValue.textContent = clearPathDistInput.value;
+
+            // Calculate tooltip position based on slider value
+            const min = parseFloat(clearPathDistInput.min);
+            const max = parseFloat(clearPathDistInput.max);
+            const value = parseFloat(clearPathDistInput.value);
+            const percentage = ((value - min) / (max - min)) * 100;
+
+            // Position the tooltip above the thumb
+            clearPathDistValue.style.left = `calc(${percentage}% + (${8 - percentage * 0.15}px))`;
+        }
+    }
+
+    // Show/hide tooltip on mouse interaction
+    function showClearPathTooltip() {
+        if (clearPathDistValue) {
+            clearPathDistValue.style.opacity = '1';
+            clearPathDistValue.style.pointerEvents = 'none';
+        }
+    }
+
+    function hideClearPathTooltip() {
+        if (clearPathDistValue) {
+            clearPathDistValue.style.opacity = '0';
         }
     }
 
@@ -210,22 +245,33 @@ document.addEventListener('DOMContentLoaded', function () {
         toggleClearPathVisibility();
     }
 
+    // Set up event listeners
+    if (useExtraBuffsCheckbox) {
+        useExtraBuffsCheckbox.addEventListener('change', toggleUseExtraBuffsVisibility);
+        // Initialize visibility
+        toggleUseExtraBuffsVisibility();
+    }
+
     if (clearPathDistInput) {
         clearPathDistInput.addEventListener('input', updateClearPathValue);
-        // Initialize value display
+        clearPathDistInput.addEventListener('mousedown', showClearPathTooltip);
+        clearPathDistInput.addEventListener('mouseup', hideClearPathTooltip);
+        clearPathDistInput.addEventListener('mouseleave', hideClearPathTooltip);
+        // Initialize value display and hide tooltip
         updateClearPathValue();
+        hideClearPathTooltip();
     }
-    
+
     function updateNovaSorceressOptions() {
         const selectedDifficulty = document.getElementById('gameDifficulty').value;
         updateBossStaticThresholdMin(selectedDifficulty);
         handleBossStaticThresholdChange();
     }
-    
+
     function updateBossStaticThresholdMin(difficulty) {
         const input = document.getElementById('novaBossStaticThreshold');
         let minValue;
-        switch(difficulty) {
+        switch (difficulty) {
             case 'normal':
                 minValue = 1;
                 break;
@@ -247,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     characterClassSelect.addEventListener('change', updateCharacterOptions);
-    document.getElementById('gameDifficulty').addEventListener('change', function() {
+    document.getElementById('gameDifficulty').addEventListener('change', function () {
         if (characterClassSelect.value === 'nova' || characterClassSelect.value === 'lightsorc') {
             updateNovaSorceressOptions();
         }
@@ -291,8 +337,8 @@ document.addEventListener('DOMContentLoaded', function () {
             checkbox.checked = e.target.checked;
         });
     });
-	
-	 function filterRunewords(searchTerm = '') { // Default parameter to ensure previously checked runewords show before searching
+
+    function filterRunewords(searchTerm = '') { // Default parameter to ensure previously checked runewords show before searching
         let listItems = document.querySelectorAll('.runeword-item');
         searchTerm = searchTerm.toLowerCase();
 
@@ -313,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function () {
             filterRunewords(runewordSearchInput.value);
         });
 
-        document.addEventListener('change', function(e) {
+        document.addEventListener('change', function (e) {
             if (e.target.matches('.runeword-item input[type="checkbox"]')) {
                 filterRunewords(runewordSearchInput.value);
             }
@@ -323,14 +369,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-	
+
 });
 
 function handleBossStaticThresholdChange() {
     const input = document.getElementById('novaBossStaticThreshold');
     const selectedDifficulty = document.getElementById('gameDifficulty').value;
     let minValue;
-    switch(selectedDifficulty) {
+    switch (selectedDifficulty) {
         case 'normal':
             minValue = 1;
             break;

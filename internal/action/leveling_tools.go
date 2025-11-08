@@ -289,48 +289,6 @@ func ResetBindings() error {
 	return nil
 }
 
-func UpdateQuestLog(fullUpdate bool) error {
-	ctx := context.Get()
-	ctx.SetLastAction("UpdateQuestLog")
-
-	if _, isLevelingChar := ctx.Char.(context.LevelingCharacter); !isLevelingChar {
-		ctx.Logger.Debug("Update quest log : early exit not LevelingCharacter")
-		return nil
-	}
-
-	ctx.HID.PressKeyBinding(ctx.Data.KeyBindings.QuestLog)
-	utils.Sleep(1000)
-
-	currentAct := ctx.Data.PlayerUnit.Area.Act()
-	startAct := currentAct
-
-	actWaitTimeMS := 300
-	if fullUpdate {
-		startAct = 1
-		actWaitTimeMS = 1000
-	}
-
-	var actButtonPositions map[int]data.Position
-	if ctx.Data.LegacyGraphics {
-		actButtonPositions = uiQuestLogActButtonsLegacy
-	} else {
-		actButtonPositions = uiQuestLogActButtonsD2R
-	}
-
-	for i := startAct; i <= currentAct; i++ {
-		if pos, found := actButtonPositions[i]; found {
-			ctx.Logger.Debug(fmt.Sprintf("Clicking Quest Log Act %d button at (%d, %d)", i, pos.X, pos.Y))
-
-			ctx.HID.Click(game.LeftButton, pos.X, pos.Y)
-			utils.Sleep(actWaitTimeMS)
-		} else {
-			ctx.Logger.Warn(fmt.Sprintf("Could not find Quest Log button coordinates for current Act: %d", i))
-		}
-	}
-
-	return step.CloseAllMenus()
-}
-
 // isMercenaryPresent checks for the existence of an Act 2 mercenary
 func isMercenaryPresent(mercName npc.ID) bool {
 	ctx := context.Get()
@@ -580,7 +538,32 @@ func WaitForAllMembersWhenLeveling() error {
 	}
 }
 
+func IsLowGold() bool {
+	ctx := context.Get()
+
+	var playerLevel int
+	if lvl, found := ctx.Data.PlayerUnit.FindStat(stat.Level, 0); found {
+		playerLevel = lvl.Value
+	} else {
+		playerLevel = 1
+	}
+
+	return ctx.Data.PlayerUnit.TotalPlayerGold() < playerLevel*1000
+}
+
 func GetCastersCommonRunewords() []string {
 	castersRunewords := []string{"Stealth", "Spirit", "Heart of the Oak"}
 	return castersRunewords
+}
+
+func TryConsumeStaminaPot() {
+	ctx := context.Get()
+	if ctx.HealthManager.IsLowStamina() {
+		if staminaPotion, found := ctx.Data.Inventory.Find("StaminaPotion", item.LocationInventory); found {
+			ctx.HID.PressKeyBinding(ctx.Data.KeyBindings.Inventory)
+			screenPos := ui.GetScreenCoordsForItem(staminaPotion)
+			ctx.HID.Click(game.RightButton, screenPos.X, screenPos.Y)
+			step.CloseAllMenus()
+		}
+	}
 }

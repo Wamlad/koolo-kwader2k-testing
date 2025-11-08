@@ -15,6 +15,7 @@ import (
 	"github.com/hectorgimenez/d2go/pkg/data/stat"
 	"github.com/hectorgimenez/koolo/internal/action"
 	"github.com/hectorgimenez/koolo/internal/config"
+	"github.com/hectorgimenez/koolo/internal/context"
 	"github.com/hectorgimenez/koolo/internal/utils"
 	"github.com/lxn/win"
 )
@@ -41,8 +42,6 @@ func (a Leveling) act4() error {
 	}
 
 	running = true
-
-	action.UpdateQuestLog(false)
 
 	action.VendorRefill(false, true)
 
@@ -73,24 +72,21 @@ func (a Leveling) act4() error {
 		}
 
 		err = action.InteractObject(harrogathPortal, func() bool {
-			return a.ctx.Data.AreaData.Area == area.Harrogath && a.ctx.Data.AreaData.IsInside(a.ctx.Data.PlayerUnit.Position)
+			utils.Sleep(100)
+			ctx := context.Get()
+			return !ctx.Manager.InGame()
 		})
-		if err != nil {
-			return err
-		}
 
 		// Skip Cinematic
-		utils.Sleep(1000)
+		utils.Sleep(2000)
 		a.HoldKey(win.VK_SPACE, 2000)
-		utils.Sleep(3000)
+		utils.Sleep(2000)
 		a.HoldKey(win.VK_SPACE, 2000)
-		utils.Sleep(1000)
+
 		return nil
 	}
 
-	if (a.ctx.CharacterCfg.Game.Difficulty == difficulty.Normal && a.ctx.Data.PlayerUnit.TotalPlayerGold() < 30000) ||
-		(a.ctx.CharacterCfg.Game.Difficulty == difficulty.Nightmare && a.ctx.Data.PlayerUnit.TotalPlayerGold() < 50000) ||
-		(a.ctx.CharacterCfg.Game.Difficulty == difficulty.Hell && a.ctx.Data.PlayerUnit.TotalPlayerGold() < 70000) {
+	if action.IsLowGold() {
 
 		a.ctx.Logger.Info("Low on gold. Initiating Chest Run.")
 
@@ -161,17 +157,16 @@ func (a Leveling) act4() error {
 		}
 
 		err = action.InteractObject(harrogathPortal, func() bool {
-			return a.ctx.Data.AreaData.Area == area.Harrogath && a.ctx.Data.AreaData.IsInside(a.ctx.Data.PlayerUnit.Position)
+			utils.Sleep(100)
+			ctx := context.Get()
+			return !ctx.Manager.InGame()
 		})
-		if err != nil {
-			return err
-		}
 
-		utils.Sleep(1000)
+		// Skip Cinematic
+		utils.Sleep(2000)
 		a.HoldKey(win.VK_SPACE, 2000)
-		utils.Sleep(3000)
+		utils.Sleep(2000)
 		a.HoldKey(win.VK_SPACE, 2000)
-		utils.Sleep(1000)
 
 		return nil
 	}
@@ -203,17 +198,16 @@ func (a Leveling) act4() error {
 		}
 
 		err = action.InteractObject(harrogathPortal, func() bool {
-			return a.ctx.Data.AreaData.Area == area.Harrogath && a.ctx.Data.AreaData.IsInside(a.ctx.Data.PlayerUnit.Position)
+			utils.Sleep(100)
+			ctx := context.Get()
+			return !ctx.Manager.InGame()
 		})
-		if err != nil {
-			return err
-		}
 
-		utils.Sleep(1000)
+		// Skip Cinematic
+		utils.Sleep(2000)
 		a.HoldKey(win.VK_SPACE, 2000)
-		utils.Sleep(3000)
+		utils.Sleep(2000)
 		a.HoldKey(win.VK_SPACE, 2000)
-		utils.Sleep(1000)
 
 		return nil
 	}

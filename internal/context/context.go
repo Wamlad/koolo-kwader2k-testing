@@ -15,6 +15,7 @@ import (
 	"github.com/hectorgimenez/koolo/internal/game"
 	"github.com/hectorgimenez/koolo/internal/health"
 	"github.com/hectorgimenez/koolo/internal/pather"
+	"github.com/hectorgimenez/koolo/internal/utils"
 )
 
 var mu sync.Mutex
@@ -38,29 +39,31 @@ type Status struct {
 }
 
 type Context struct {
-	Name               string
-	ExecutionPriority  Priority
-	CharacterCfg       *config.CharacterCfg
-	Data               *game.Data
-	EventListener      *event.Listener
-	HID                *game.HID
-	Logger             *slog.Logger
-	Manager            *game.Manager
-	GameReader         *game.MemoryReader
-	MemoryInjector     *game.MemoryInjector
-	PathFinder         *pather.PathFinder
-	BeltManager        *health.BeltManager
-	HealthManager      *health.Manager
-	Char               Character
-	LastBuffAt         time.Time
-	ContextDebug       map[Priority]*Debug
-	CurrentGame        *CurrentGameHelper
-	SkillPointIndex    int // NEW FIELD: Tracks the next skill to consider from the character's SkillPoints() list
-	ForceAttack        bool
-	StopSupervisorFn   StopFunc
-	CleanStopRequested bool
+	Name                 string
+	ExecutionPriority    Priority
+	CharacterCfg         *config.CharacterCfg
+	Data                 *game.Data
+	EventListener        *event.Listener
+	HID                  *game.HID
+	Logger               *slog.Logger
+	Manager              *game.Manager
+	GameReader           *game.MemoryReader
+	MemoryInjector       *game.MemoryInjector
+	PathFinder           *pather.PathFinder
+	BeltManager          *health.BeltManager
+	HealthManager        *health.Manager
+	Char                 Character
+	LastBuffAt           time.Time
+	ContextDebug         map[Priority]*Debug
+	CurrentGame          *CurrentGameHelper
+	SkillPointIndex      int // NEW FIELD: Tracks the next skill to consider from the character's SkillPoints() list
+	ForceAttack          bool
+	StopSupervisorFn     StopFunc
+	CleanStopRequested   bool
 	RestartWithCharacter string
-	PacketSender       *game.PacketSender
+	PacketSender         *game.PacketSender
+	IsLevelingCharacter  *bool
+	LastPortalTick       time.Time // NEW FIELD: Tracks last portal creation for spam prevention
 }
 
 type Debug struct {
@@ -113,9 +116,17 @@ func NewContext(name string) *Status {
 		SkillPointIndex: 0,
 		ForceAttack:     false,
 	}
-	botContexts[getGoroutineID()] = &Status{Priority: PriorityNormal, Context: ctx}
+	ctx.AttachRoutine(PriorityNormal)
 
-	return botContexts[getGoroutineID()]
+	// Initialize ping getter for adaptive delays (avoids import cycle)
+	utils.SetPingGetter(func() int {
+		if ctx.Data != nil && ctx.Data.Game.Ping > 0 {
+			return ctx.Data.Game.Ping
+		}
+		return 50 // Safe default
+	})
+
+	return Get()
 }
 
 func NewGameHelper() *CurrentGameHelper {
@@ -153,6 +164,12 @@ func getGoroutineID() uint64 {
 
 func (ctx *Context) RefreshGameData() {
 	*ctx.Data = ctx.GameReader.GetData()
+	if ctx.IsLevelingCharacter == nil {
+		_, isLevelingCharacter := ctx.Char.(LevelingCharacter)
+		ctx.IsLevelingCharacter = &isLevelingCharacter
+	}
+	ctx.Data.IsLevelingCharacter = *ctx.IsLevelingCharacter
+
 }
 
 func (ctx *Context) RefreshInventory() {

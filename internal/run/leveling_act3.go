@@ -26,8 +26,6 @@ func (a Leveling) act3() error {
 		return nil
 	}
 
-	action.UpdateQuestLog(false)
-
 	// Try to find Hratli at pier, if he's there, talk to him, so he will move to the normal position later
 	hratli, found := a.ctx.Data.Monsters.FindOne(npc.Hratli, data.MonsterTypeNone)
 	if found {
@@ -41,14 +39,12 @@ func (a Leveling) act3() error {
 	_, potionFound := a.ctx.Data.Inventory.Find("PotionOfLife", item.LocationInventory)
 	q := a.ctx.Data.Quests[quest.Act3TheGoldenBird]
 	if (q.Completed() && potionFound) ||
-		(!q.HasStatus(quest.StatusQuestNotStarted) && !q.Completed()) {
+		(!q.NotStarted() && !q.Completed()) {
 		a.jadefigurine()
 	}
 
 	// Gold Farming Logic for Lower Kurast (and immediate return if farming is needed)
-	if (a.ctx.CharacterCfg.Game.Difficulty == difficulty.Normal && a.ctx.Data.PlayerUnit.TotalPlayerGold() < 30000) ||
-		(a.ctx.CharacterCfg.Game.Difficulty == difficulty.Nightmare && a.ctx.Data.PlayerUnit.TotalPlayerGold() < 50000) ||
-		(a.ctx.CharacterCfg.Game.Difficulty == difficulty.Hell && a.ctx.Data.PlayerUnit.TotalPlayerGold() < 70000) {
+	if action.IsLowGold() {
 
 		a.ctx.Logger.Info("Low on gold. Initiating Lower Kurast Chests gold farm.")
 		if err := NewLowerKurastChest().Run(); err != nil {
@@ -258,7 +254,9 @@ func (a Leveling) act3() error {
 		return nil // Exit gracefully
 	} else if !willFound && !a.ctx.Data.Quests[quest.Act3KhalimsWill].Completed() {
 		a.ctx.Logger.Info("KhalimsFlail not found, starting quest")
-		NewTravincal().Run()
+		if err := NewTravincal().Run(); err != nil {
+			return err
+		}
 	}
 
 	return nil

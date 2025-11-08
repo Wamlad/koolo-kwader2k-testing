@@ -135,6 +135,42 @@ func AutoEquip() error {
 	}
 }
 
+func IsBetterThanEquipped(itm data.Item, forMerc bool, scoreFunc func(data.Item) map[item.LocationType]float64) bool {
+	ctx := context.Get()
+
+	bodyLocs := itm.Desc().GetType().BodyLocs
+	if len(bodyLocs) == 0 {
+		return false
+	}
+
+	scores := scoreFunc(itm)
+
+	for loc, itmScore := range scores {
+		if !isEquippable(itm, loc, loc) {
+			continue
+		}
+
+		if !isValidLocation(itm, loc, loc) {
+			continue
+		}
+
+		var currentlyEquipped data.Item
+		if !forMerc {
+			currentlyEquipped = GetEquippedItem(ctx.Data.Inventory, loc)
+		} else {
+			currentlyEquipped = GetMercEquippedItem(ctx.Data.Inventory, loc)
+		}
+
+		equippedScore := scoreFunc(currentlyEquipped)
+
+		if itmScore > equippedScore[loc] {
+			return true
+		}
+	}
+
+	return false
+}
+
 func equipCTAIfFound(allItems []data.Item) (bool, error) {
 	ctx := context.Get()
 	var ctaWeapon data.Item
@@ -391,6 +427,10 @@ func evaluateItems(items []data.Item, target item.LocationType, scoreFunc func(d
 			continue
 		}
 
+		if !itm.Identified && itm.Quality >= item.QualityMagic {
+			continue
+		}
+
 		bodyLocScores := scoreFunc(itm)
 
 		if len(bodyLocScores) > 0 {
@@ -481,6 +521,9 @@ func equipBestItems(itemsByLoc map[item.LocationType][]data.Item, itemScores map
 		var bestCandidate data.Item
 		foundCandidate := false
 		for _, itm := range items { // Changed "item" to "itm" here
+			if itm.InTradeOrStoreScreen {
+				continue
+			}
 			// A valid candidate is an item that is not equipped, OR is already equipped in the current slot we are checking.
 			if itm.Location.LocationType != item.LocationEquipped || itm.Location.BodyLocation == loc { // And here
 				bestCandidate = itm // And here
@@ -897,7 +940,7 @@ func findInventorySpace(itm data.Item) (data.Position, bool) {
 // GetEquippedItem is a new helper function to search for the currently equipped item in a specific location
 func GetEquippedItem(inventory data.Inventory, loc item.LocationType) data.Item {
 	for _, itm := range inventory.ByLocation(item.LocationEquipped) {
-		if itm.Location.BodyLocation == loc {
+		if itm.Location.BodyLocation == loc && !itm.InTradeOrStoreScreen {
 			return itm
 		}
 	}
@@ -907,7 +950,7 @@ func GetEquippedItem(inventory data.Inventory, loc item.LocationType) data.Item 
 // GetMercEquippedItem is a new helper function for the merc
 func GetMercEquippedItem(inventory data.Inventory, loc item.LocationType) data.Item {
 	for _, itm := range inventory.ByLocation(item.LocationMercenary) {
-		if itm.Location.BodyLocation == loc {
+		if itm.Location.BodyLocation == loc && !itm.InTradeOrStoreScreen {
 			return itm
 		}
 	}
